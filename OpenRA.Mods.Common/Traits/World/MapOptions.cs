@@ -73,6 +73,24 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Display order for the game speed option in the lobby.")]
 		public readonly int GameSpeedDropdownDisplayOrder = 0;
 
+		[Desc("Descriptive label for the show score checkbox in the lobby.")]
+		public readonly string ShowScoreCheckboxLabel = "Show Score";
+
+		[Desc("Tooltip description for the show score checkbox in the lobby.")]
+		public readonly string ShowScoreCheckboxDescription = "Show player score in game";
+
+		[Desc("Default value of the show score checkbox in the lobby.")]
+		public readonly bool ShowScoreCheckboxEnabled = true;
+
+		[Desc("Prevent the show score enabled state from being changed in the lobby.")]
+		public readonly bool ShowScoreCheckboxLocked = false;
+
+		[Desc("Whether to display the show score checkbox in the lobby.")]
+		public readonly bool ShowScoreCheckboxVisible = true;
+
+		[Desc("Display order for the show score checkbox in the lobby.")]
+		public readonly int ShowScoreCheckboxDisplayOrder = 0;
+
 		IEnumerable<LobbyOption> ILobbyOptions.LobbyOptions(MapPreview map)
 		{
 			yield return new LobbyBooleanOption("shortgame", ShortGameCheckboxLabel, ShortGameCheckboxDescription,
@@ -91,6 +109,9 @@ namespace OpenRA.Mods.Common.Traits
 			// NOTE: This is just exposing the UI, the backend logic for this option is hardcoded in World
 			yield return new LobbyOption("gamespeed", GameSpeedDropdownLabel, GameSpeedDropdownDescription, GameSpeedDropdownVisible, GameSpeedDropdownDisplayOrder,
 				speeds, GameSpeed ?? gameSpeeds.DefaultSpeed, GameSpeedDropdownLocked);
+
+			yield return new LobbyBooleanOption("showscore", ShowScoreCheckboxLabel, ShowScoreCheckboxDescription,
+				ShowScoreCheckboxVisible, ShowScoreCheckboxDisplayOrder, ShowScoreCheckboxEnabled, ShowScoreCheckboxLocked);
 		}
 
 		void IRulesetLoaded<ActorInfo>.RulesetLoaded(Ruleset rules, ActorInfo info)
@@ -109,7 +130,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		public bool ShortGame { get; private set; }
 		public string TechLevel { get; private set; }
-
+		public bool ShowScore { get; private set; }
 		public MapOptions(MapOptionsInfo info)
 		{
 			this.info = info;
@@ -122,6 +143,9 @@ namespace OpenRA.Mods.Common.Traits
 
 			TechLevel = self.World.LobbyInfo.GlobalSettings
 				.OptionOrDefault("techlevel", info.TechLevel);
+
+			ShowScore = self.World.LobbyInfo.GlobalSettings
+				.OptionOrDefault("showscore", info.ShowScoreCheckboxEnabled);
 		}
 	}
 }

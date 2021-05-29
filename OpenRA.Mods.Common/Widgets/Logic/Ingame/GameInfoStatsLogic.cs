@@ -27,7 +27,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 		{
 			var player = world.LocalPlayer;
 			var playerPanel = widget.Get<ScrollPanelWidget>("PLAYER_LIST");
-
+			var showScore = world.WorldActor.Trait<MapOptions>().ShowScore;
 			if (player != null && !player.NonCombatant)
 			{
 				var checkbox = widget.Get<CheckboxWidget>("STATS_CHECKBOX");
@@ -64,13 +64,14 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			var playerTemplate = playerPanel.Get("PLAYER_TEMPLATE");
 			var spectatorTemplate = playerPanel.Get("SPECTATOR_TEMPLATE");
 			playerPanel.RemoveChildren();
-
-			var teams = world.Players.Where(p => !p.NonCombatant && p.Playable)
-				.Select(p => (Player: p, PlayerStatistics: p.PlayerActor.TraitOrDefault<PlayerStatistics>()))
-				.OrderByDescending(p => p.PlayerStatistics?.Experience ?? 0)
-				.GroupBy(p => (world.LobbyInfo.ClientWithIndex(p.Player.ClientIndex) ?? new Session.Client()).Team)
-				.OrderByDescending(g => g.Sum(gg => gg.PlayerStatistics?.Experience ?? 0));
-
+			var teams = (showScore ? world.Players.Where(p => !p.NonCombatant && p.Playable)
+										.Select(p => (Player: p, PlayerStatistics: p.PlayerActor.TraitOrDefault<PlayerStatistics>()))
+										.OrderByDescending(p => p.PlayerStatistics?.Experience ?? 0)
+										.GroupBy(p => (world.LobbyInfo.ClientWithIndex(p.Player.ClientIndex) ?? new Session.Client()).Team)
+										.OrderByDescending(g => g.Sum(gg => gg.PlayerStatistics?.Experience ?? 0)) :
+									world.Players.Where(p => !p.NonCombatant && p.Playable)
+										.Select(p => (Player: p, PlayerStatistics: p.PlayerActor.TraitOrDefault<PlayerStatistics>()))
+										.GroupBy(p => (world.LobbyInfo.ClientWithIndex(p.Player.ClientIndex) ?? new Session.Client()).Team));
 			foreach (var t in teams)
 			{
 				if (teams.Count() > 1)
@@ -80,7 +81,14 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 					var teamRating = teamHeader.Get<LabelWidget>("TEAM_SCORE");
 					var scoreCache = new CachedTransform<int, string>(s => s.ToString());
 					var teamMemberScores = t.Select(tt => tt.PlayerStatistics).Where(s => s != null).ToArray().Select(s => s.Experience);
-					teamRating.GetText = () => scoreCache.Update(teamMemberScores.Sum());
+					if (player == null || player.Spectating || showScore || t.Any(p => p.Player == player))
+					{
+						teamRating.GetText = () => scoreCache.Update(teamMemberScores.Sum());
+					}
+					else
+					{
+						teamRating.GetText = () => "???";
+					}
 
 					playerPanel.AddChild(teamHeader);
 				}
@@ -110,8 +118,16 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 						item.Get<LabelWidget>("FACTION").GetText = () => pp.DisplayFaction.Name;
 					}
 
-					var scoreCache = new CachedTransform<int, string>(s => s.ToString());
-					item.Get<LabelWidget>("SCORE").GetText = () => scoreCache.Update(p.PlayerStatistics?.Experience ?? 0);
+					if (player == null || player.Spectating || world.WorldActor.Trait<MapOptions>().ShowScore || player.RelationshipWith(pp) == PlayerRelationship.Ally)
+					{
+						var scoreCache = new CachedTransform<int, string>(s => s.ToString());
+						item.Get<LabelWidget>("SCORE").GetText = () => scoreCache.Update(p.PlayerStatistics?.Experience ?? 0);
+					}
+					else
+					{
+						item.Get<LabelWidget>("SCORE").GetText = () => "???";
+					}
+
 
 					playerPanel.AddChild(item);
 				}
